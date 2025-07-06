@@ -4,36 +4,58 @@ mod data_analyzer;
 use read_file::{read_file, save_dataset_to_csv, extract_subset};
 use data_analyzer::DataAnalyzer;
 use anyhow::Result;
-use std::env;
 use std::path::Path;
+use std::io::{self, Write};
 
 fn main() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
+    // 인사말 출력
+    println!("안녕하세요. 데이터 분석 프로그램입니다");
+    println!();
+    print_usage();
 
-    if args.len() < 2 {
-        print_usage();
-        return Ok(());
-    }
+    loop {
+        print!("\n명령어를 입력하세요 (help, analyze, demo, exit): ");
+        io::stdout().flush()?;
 
-    let command = &args[1];
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let input = input.trim();
 
-    match command.as_str() {
-        "analyze" => {
-            if args.len() < 3 {
-                println!("Usage: {} analyze <file_path>", args[0]);
-                return Ok(());
+        if input.is_empty() {
+            continue;
+        }
+
+        let parts: Vec<&str> = input.split_whitespace().collect();
+        let command = parts[0];
+
+        match command {
+            "analyze" => {
+                if parts.len() < 2 {
+                    println!("사용법: analyze <파일경로>");
+                    println!("예시: analyze data.csv");
+                    continue;
+                }
+                let file_path = parts[1];
+                if let Err(e) = analyze_file(file_path) {
+                    println!("파일 분석 중 오류가 발생했습니다: {}", e);
+                }
             }
-            analyze_file(&args[2])?;
-        }
-        "demo" => {
-            run_demo()?;
-        }
-        "help" => {
-            print_usage();
-        }
-        _ => {
-            println!("Unknown command: {}", command);
-            print_usage();
+            "demo" => {
+                if let Err(e) = run_demo() {
+                    println!("데모 실행 중 오류가 발생했습니다: {}", e);
+                }
+            }
+            "help" => {
+                print_usage();
+            }
+            "exit" | "quit" | "종료" => {
+                println!("프로그램을 종료합니다. 안녕히 가세요!");
+                break;
+            }
+            _ => {
+                println!("알 수 없는 명령어입니다: {}", command);
+                println!("사용 가능한 명령어: help, analyze, demo, exit");
+            }
         }
     }
 
@@ -42,12 +64,13 @@ fn main() -> Result<()> {
 
 fn print_usage() {
     println!("데이터 분석기 (Data Analyzer)");
-    println!("Usage:");
-    println!("  cargo run analyze <file_path>  - Analyze a CSV or Excel file");
-    println!("  cargo run demo                 - Run demonstration with sample data");
-    println!("  cargo run help                 - Show this help message");
+    println!("사용 가능한 명령어:");
+    println!("  analyze <파일경로>  - CSV 또는 Excel 파일 분석");
+    println!("  demo               - 샘플 데이터로 데모 실행");
+    println!("  help               - 도움말 표시");
+    println!("  exit               - 프로그램 종료");
     println!();
-    println!("Features:");
+    println!("주요 기능:");
     println!("  - CSV/Excel 파일 읽기");
     println!("  - 기초통계량 계산 (평균, 중앙값, 표준편차 등)");
     println!("  - 빈도 분석");
