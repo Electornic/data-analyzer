@@ -3,9 +3,12 @@ mod data_analyzer;
 
 use read_file::{read_file, save_dataset_to_csv, extract_subset};
 use data_analyzer::DataAnalyzer;
+use analyze::AnalyzeManager;
 use anyhow::Result;
 use std::path::Path;
 use std::io::{self, Write};
+
+mod analyze;
 
 fn main() -> Result<()> {
     // 인사말 출력
@@ -89,81 +92,9 @@ fn analyze_file(file_path: &str) -> Result<()> {
     // 데이터셋 요약 정보 출력
     analyzer.print_dataset_summary(&dataset);
 
-    // 각 열에 대해 분석 수행
-    for header in &dataset.headers {
-        println!("\n분석 중인 열: {}", header);
-
-        // 숫자 데이터인지 확인하고 기초통계량 계산
-        if let Ok(stats) = analyzer.analyze_column(&dataset, header) {
-            analyzer.print_basic_stats(&stats, header);
-
-            // 그래프 생성
-            if let Ok(numeric_data) = dataset.get_numeric_column(header) {
-                let safe_header = header.replace(" ", "_").replace("/", "_");
-
-                // Box Plot 생성
-                let box_plot_path = format!("boxplot_{}.png", safe_header);
-                if let Err(e) = analyzer.create_box_plot(&numeric_data, 
-                    &format!("Box Plot - {}", header), &box_plot_path) {
-                    println!("Box plot 생성 실패: {}", e);
-                }
-
-                // QQ Plot 생성
-                let qq_plot_path = format!("qqplot_{}.png", safe_header);
-                if let Err(e) = analyzer.create_qq_plot(&numeric_data, 
-                    &format!("QQ Plot - {}", header), &qq_plot_path) {
-                    println!("QQ plot 생성 실패: {}", e);
-                }
-
-                // Histogram 생성
-                let histogram_path = format!("histogram_{}.png", safe_header);
-                if let Err(e) = analyzer.create_histogram(&numeric_data, 
-                    &format!("Histogram - {}", header), &histogram_path, 20) {
-                    println!("Histogram 생성 실패: {}", e);
-                }
-            }
-        } else {
-            // 문자열 데이터의 경우 빈도 분석
-            if let Ok(freq_data) = analyzer.analyze_column_frequency(&dataset, header) {
-                analyzer.print_frequency_data(&freq_data, header);
-            }
-        }
-    }
-
-    // 표본 추출 예시
-    if dataset.row_count() > 10 {
-        println!("\n=== 표본 추출 예시 ===");
-        let sample_size = (dataset.row_count() / 2).min(100);
-
-        if let Ok(sample) = analyzer.random_sample(&dataset, sample_size) {
-            println!("무작위 표본 추출 완료: {} 행", sample.row_count());
-            let sample_path = format!("{}_random_sample.csv", 
-                Path::new(file_path).file_stem().unwrap().to_str().unwrap());
-            if let Err(e) = save_dataset_to_csv(&sample, &sample_path) {
-                println!("표본 저장 실패: {}", e);
-            } else {
-                println!("표본이 {}에 저장되었습니다.", sample_path);
-            }
-        }
-    }
-
-    // 특정 열 추출 예시
-    if !dataset.headers.is_empty() {
-        println!("\n=== 열 추출 예시 ===");
-        let first_column = &dataset.headers[0];
-        let columns_to_extract = vec![first_column.clone()];
-
-        if let Ok(subset) = extract_subset(&dataset, None, Some(columns_to_extract)) {
-            let subset_path = format!("{}_column_{}.csv", 
-                Path::new(file_path).file_stem().unwrap().to_str().unwrap(),
-                first_column.replace(" ", "_"));
-            if let Err(e) = save_dataset_to_csv(&subset, &subset_path) {
-                println!("열 추출 파일 저장 실패: {}", e);
-            } else {
-                println!("'{}' 열이 {}에 저장되었습니다.", first_column, subset_path);
-            }
-        }
-    }
+    // 새로운 인터랙티브 분석 시스템 시작
+    let analyze_manager = AnalyzeManager::new(dataset);
+    analyze_manager.run_interactive_analysis()?;
 
     Ok(())
 }
