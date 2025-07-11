@@ -24,7 +24,7 @@ pub fn create_bar_chart(dataset: &DataSet) -> Result<()> {
 
     // 파일명 생성
     let safe_column = column.replace(" ", "_").replace("/", "_");
-    let output_path = format!("bar_chart_{}.png", safe_column);
+    let output_path = format!("result/bar_chart_{}.png", safe_column);
 
     // 그래프 생성
     let root = BitMapBackend::new(&output_path, (800, 600)).into_drawing_area();

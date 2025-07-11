@@ -103,27 +103,40 @@ fn run_demo() -> Result<()> {
     println!("=== 데이터 분석기 데모 실행 ===");
 
     // 샘플 데이터 생성
-    create_sample_data()?;
+    let sample_filename = create_sample_data()?;
 
     // 생성된 샘플 데이터 분석
-    analyze_file("sample_data.csv")?;
+    analyze_file(&sample_filename)?;
 
     println!("\n데모가 완료되었습니다!");
     println!("생성된 파일들:");
-    println!("- sample_data.csv: 샘플 데이터");
-    println!("- *.png: 생성된 그래프들");
-    println!("- *_sample.csv: 표본 추출 결과");
-    println!("- *_column_*.csv: 열 추출 결과");
+    println!("- {}: 샘플 데이터 (sample 폴더에 저장됨)", sample_filename);
+    println!("- result/*.png: 생성된 그래프들 (result 폴더에 저장됨)");
+    println!("- result/*_sample.csv: 표본 추출 결과 (result 폴더에 저장됨)");
+    println!("- result/*_column_*.csv: 열 추출 결과 (result 폴더에 저장됨)");
 
     Ok(())
 }
 
-fn create_sample_data() -> Result<()> {
+fn create_sample_data() -> Result<String> {
     use std::fs::File;
     use std::io::Write;
     use rand::Rng;
 
-    let mut file = File::create("sample_data.csv")?;
+    // sample 디렉토리가 없으면 생성
+    std::fs::create_dir_all("sample")?;
+
+    // 파일명 결정 로직
+    let mut filename = "sample/sample_data.csv".to_string();
+    let mut counter = 1;
+
+    // sample_data.csv가 이미 존재하면 번호를 붙여서 새 파일 생성
+    while Path::new(&filename).exists() {
+        filename = format!("sample/sample_data_{}.csv", counter);
+        counter += 1;
+    }
+
+    let mut file = File::create(&filename)?;
 
     // CSV 헤더 작성
     writeln!(file, "이름,나이,점수,등급,도시")?;
@@ -145,6 +158,6 @@ fn create_sample_data() -> Result<()> {
         writeln!(file, "{},{},{:.1},{},{}", name, age, score, grade, city)?;
     }
 
-    println!("샘플 데이터 'sample_data.csv'가 생성되었습니다.");
-    Ok(())
+    println!("샘플 데이터 '{}'가 생성되었습니다.", filename);
+    Ok(filename)
 }
